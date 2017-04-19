@@ -1,0 +1,32 @@
+{
+  "name": "allenjb/sql",
+  "type": "library",
+  "description": "Aura.Sql / Aura.SqlQuery extensions",
+  "keywords": [
+    "AllenJB",
+    "MySQL",
+    "database"
+  ],
+  "homepage": "https://github.com/AllenJB/Sql",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "AllenJB",
+      "email": "php-packages@allenjb.me.uk",
+      "homepage": "https://github.com/AllenJB",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php" : "~7.1",
+    "aura/sql": "^2.0",
+    "aura/sqlquery": "^2.7",
+    "aura/sqlschema": "^2.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "AllenJB\\Sql\\": "src",
+      "AllenJB\\SqlQuery\\": "src\\Query"
+    }
+  }
+}
