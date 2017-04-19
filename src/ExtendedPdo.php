@@ -100,6 +100,12 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
+    public static function getSetTimeZoneUTC()
+    {
+        return static::$setTimeZoneUTC;
+    }
+
+
     public function setEmulateNestedTransactions($enabled)
     {
         static::$emulateNestedTransactions = $enabled;
@@ -148,7 +154,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
         if (($retVal === null) || (strlen($retVal) < 1)) {
             throw new \UnexpectedValueException("No last insert id available");
         }
-        if (! preg_match('/^[1-9][0-9]*$/', $retVal ?? '')) {
+        if (! preg_match('/^[1-9][0-9]*$/', $retVal)) {
             throw new \UnexpectedValueException("Last insert id is not a number: " . $retVal);
         }
         return (int) $retVal;
