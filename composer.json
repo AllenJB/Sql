@@ -18,7 +18,7 @@
     }
   ],
   "require": {
-    "php" : "~7.1",
+    "php" : "~5.6",
     "aura/sql": "^2.0",
     "aura/sqlquery": "^2.7",
     "aura/sqlschema": "^2.0"
