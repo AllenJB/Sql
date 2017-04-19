@@ -1,4 +1,5 @@
 <?php
+declare(strict_types = 1);
 
 namespace AllenJB\Sql;
 
@@ -43,7 +44,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     )
     {
         if (stripos($dsn, 'mysql:') === 0) {
-            $modes = array(
+            $modes = [
                 'ERROR_FOR_DIVISION_BY_ZERO',
                 'NO_ZERO_DATE',
                 'NO_ZERO_IN_DATE',
@@ -51,7 +52,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
                 'ONLY_FULL_GROUP_BY',
                 'NO_AUTO_CREATE_USER',
                 'NO_ENGINE_SUBSTITUTION',
-            );
+            ];
             $setSqlMode = "SET sql_mode = '" . implode(',', $modes) . "'";
             if (static::$setTimeZoneUTC) {
                 $setSqlMode .= ", time_zone ='+00:00'";
@@ -82,43 +83,49 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     /**
      * @return null|ExtendedPdo
      */
-    public static function getInstance()
+    public static function getInstance() : ExtendedPdo
     {
         return static::$instance;
     }
 
 
-    public static function setInstance($instance)
+    public static function setInstance(ExtendedPdo $instance)
     {
         static::$instance = $instance;
     }
 
 
-    public static function setTimeZoneUTC($enabled)
+    public static function setTimeZoneUTC(bool $enabled) : void
     {
         static::$setTimeZoneUTC = $enabled;
     }
 
 
-    public function setEmulateNestedTransactions($enabled)
+    public static function getSetTimeZoneUTC() : bool
+    {
+        return static::$setTimeZoneUTC;
+    }
+
+
+    public function setEmulateNestedTransactions(bool $enabled) : void
     {
         static::$emulateNestedTransactions = $enabled;
     }
 
 
-    public function setTransactionDepthWarningLevel($maxTransactionDepth)
+    public function setTransactionDepthWarningLevel(int $maxTransactionDepth) : void
     {
         $this->warnTransactionDepth = $maxTransactionDepth;
     }
 
 
-    public static function getSchema()
+    public static function getSchema() : ?MysqlSchema
     {
         return static::$schema;
     }
 
 
-    public static function setSchema(MysqlSchema $schema)
+    public static function setSchema(MysqlSchema $schema) : void
     {
         static::$schema = $schema;
     }
@@ -145,7 +152,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     public function lastInsertId($name = null)
     {
         $retVal = parent::lastInsertId($name);
-        if (($retVal === null) || (strlen($retVal) < 1)) {
+        if (("" . ($retVal ?? "")) !== "") {
             throw new \UnexpectedValueException("No last insert id available");
         }
         if (! preg_match('/^[1-9][0-9]*$/', $retVal ?? '')) {
@@ -180,7 +187,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
-    protected function emulateNestedTransactionStart()
+    protected function emulateNestedTransactionStart() : bool
     {
         $this->exec(sprintf("SAVEPOINT T%d", $this->activeTransactions));
         $this->activeTransactions++;
@@ -244,19 +251,19 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
      *
      * @return int
      */
-    public function activeTransactions()
+    public function activeTransactions() : int
     {
         return $this->activeTransactions;
     }
 
 
-    public function close()
+    public function close() : void
     {
         $this->disconnect();
     }
 
 
-    protected function endProfile($statement = null, array $values = array())
+    protected function endProfile($statement = null, array $values = [])
     {
         $this->lastQueryStatement = $statement;
         $this->lastQueryBindValues = $values;
@@ -269,7 +276,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
      *
      * @return string Last query SQL
      */
-    protected function lastProfile()
+    protected function lastProfile() : ?string
     {
         $profiler = $this->getProfiler();
         if ($profiler === null) {
@@ -286,7 +293,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
      *
      * @return string Last query SQL
      */
-    public function lastQuery()
+    public function lastQuery() : ?string
     {
         $query = $this->lastQueryStatement;
         if (is_array($this->lastQueryBindValues)) {
