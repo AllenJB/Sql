@@ -152,7 +152,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     public function lastInsertId($name = null)
     {
         $retVal = parent::lastInsertId($name);
-        if (("" . ($retVal ?? "")) !== "") {
+        if (("" . ($retVal ?? "")) === "") {
             throw new \UnexpectedValueException("No last insert id available");
         }
         if (! preg_match('/^[1-9][0-9]*$/', $retVal ?? '')) {
