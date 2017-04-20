@@ -83,7 +83,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     /**
      * @return null|ExtendedPdo
      */
-    public static function getInstance() : ExtendedPdo
+    public static function getInstance() : ?ExtendedPdo
     {
         return static::$instance;
     }
