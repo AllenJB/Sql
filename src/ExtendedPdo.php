@@ -60,7 +60,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
             $options[\PDO::MYSQL_ATTR_INIT_COMMAND] = $setSqlMode;
 
             if (stripos($dsn, 'charset=') === false) {
-                $dsn .= ';charset=utf8';
+                $dsn .= ';charset=utf8mb4';
             }
         }
         $attributes[\PDO::ATTR_DEFAULT_FETCH_MODE] = \PDO::FETCH_OBJ;
