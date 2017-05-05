@@ -1,6 +1,6 @@
 <?php
 
-namespace AllenJB\Sql;
+namespace AllenJB\Sql\Exception;
 
 class DatabaseDeadlockException extends DatabaseQueryException
 {

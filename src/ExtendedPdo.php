@@ -2,6 +2,8 @@
 
 namespace AllenJB\Sql;
 
+use AllenJB\Sql\Exception\DatabaseDeadlockException;
+use AllenJB\Sql\Exception\DatabaseQueryException;
 use AllenJB\Sql\Exception\TransactionAlreadyStartedException;
 use Aura\Sql\Profiler;
 use Aura\SqlSchema\ColumnFactory;
