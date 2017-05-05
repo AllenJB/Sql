@@ -1,7 +1,7 @@
 <?php
 declare(strict_types = 1);
 
-namespace AllenJB\Sql;
+namespace AllenJB\Sql\Exception;
 
 class DatabaseQueryException extends \Exception
 {
