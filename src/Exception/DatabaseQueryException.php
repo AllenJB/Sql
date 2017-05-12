@@ -3,7 +3,7 @@ declare(strict_types = 1);
 
 namespace AllenJB\Sql\Exception;
 
-class DatabaseQueryException extends \Exception
+class DatabaseQueryException extends \PDOException
 {
 
     protected $statement = null;
