@@ -139,9 +139,9 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
             $retVal = parent::perform($statement, $values);
         } catch (\PDOException $e) {
             if (stripos($e->getMessage(), 'Deadlock found') !== false) {
-                $ex = new DatabaseDeadlockException($e->getMessage(), 0, $e);
+                $ex = DatabaseDeadlockException::fromPDOException($e);
             } else {
-                $ex = new DatabaseQueryException($e->getMessage(), 0, $e);
+                $ex = DatabaseQueryException::fromPDOException($e);
             }
             $ex->setStatement($statement);
             $ex->setValues($values);
