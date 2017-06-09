@@ -17,6 +17,16 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
 
     protected static $setTimeZoneUTC = true;
 
+    protected static $defaultSqlModes = [
+        'ERROR_FOR_DIVISION_BY_ZERO',
+        'NO_ZERO_DATE',
+        'NO_ZERO_IN_DATE',
+        'STRICT_ALL_TABLES',
+        'ONLY_FULL_GROUP_BY',
+        'NO_AUTO_CREATE_USER',
+        'NO_ENGINE_SUBSTITUTION',
+    ];
+
     /**
      * @var MysqlSchema
      */
@@ -46,16 +56,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     )
     {
         if (stripos($dsn, 'mysql:') === 0) {
-            $modes = [
-                'ERROR_FOR_DIVISION_BY_ZERO',
-                'NO_ZERO_DATE',
-                'NO_ZERO_IN_DATE',
-                'STRICT_ALL_TABLES',
-                'ONLY_FULL_GROUP_BY',
-                'NO_AUTO_CREATE_USER',
-                'NO_ENGINE_SUBSTITUTION',
-            ];
-            $setSqlMode = "SET sql_mode = '" . implode(',', $modes) . "'";
+            $setSqlMode = "SET sql_mode = '" . implode(',', static::$defaultSqlModes) . "'";
             if (static::$setTimeZoneUTC) {
                 $setSqlMode .= ", time_zone ='+00:00'";
             }
@@ -94,6 +95,18 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     public static function setInstance(ExtendedPdo $instance)
     {
         static::$instance = $instance;
+    }
+
+
+    public static function setDefaultSqlModes(array $modes) : void
+    {
+        static::$defaultSqlModes = $modes;
+    }
+
+
+    public static function getDefaultSqlModes() : array
+    {
+        return static::$defaultSqlModes;
     }
 
 
