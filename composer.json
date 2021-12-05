@@ -28,5 +28,9 @@
       "AllenJB\\Sql\\": "src",
       "AllenJB\\SqlQuery\\": "src\\Query"
     }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "4.8",
+    "phpunit/php-timer": "1.0.9"
   }
 }
