@@ -34,9 +34,9 @@ trait AbstractQueryTrait
 
     protected function convertBindValue($value)
     {
-        if (is_object($value) && (($value instanceof \DateTimeImmutable) || ($value instanceof \DateTime))) {
+        if (($value instanceof \DateTimeImmutable) || ($value instanceof \DateTime)) {
             $clone = clone $value;
-            if (ExtendedPdo::getSetTimeZoneUTC()) {
+            if (ExtendedPdo::getSetTimeZoneIsUTC()) {
                 $tz = new \DateTimeZone("UTC");
                 // This reassignment handles DateTimeImmutable instances, which never modify themselves but return a new instance
                 $clone = $clone->setTimezone($tz);

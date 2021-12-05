@@ -1,23 +1,21 @@
 <?php
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace AllenJB\Sql;
 
 use AllenJB\Sql\Exception\DatabaseDeadlockException;
 use AllenJB\Sql\Exception\DatabaseQueryException;
 use AllenJB\Sql\Exception\TransactionAlreadyStartedException;
-use Aura\Sql\Profiler;
-use Aura\SqlSchema\ColumnFactory;
-use Aura\SqlSchema\MysqlSchema;
+use Aura\Sql\Profiler\ProfilerInterface;
 
 class ExtendedPdo extends \Aura\Sql\ExtendedPdo
 {
 
-    protected static $instance = null;
+    protected static ?ExtendedPdo $instance = null;
 
-    protected static $setTimeZoneUTC = true;
+    protected static bool $setTimeZoneIsUTC = true;
 
-    protected static $defaultSqlModes = [
+    public const SQL_MODES_57 = [
         'ERROR_FOR_DIVISION_BY_ZERO',
         'NO_ZERO_DATE',
         'NO_ZERO_IN_DATE',
@@ -27,24 +25,22 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
         'NO_ENGINE_SUBSTITUTION',
     ];
 
-    /**
-     * @var MysqlSchema
-     */
-    protected static $schema;
+    public const SQL_MODES_80 = [
+        'ERROR_FOR_DIVISION_BY_ZERO',
+        'NO_ZERO_DATE',
+        'NO_ZERO_IN_DATE',
+        'STRICT_ALL_TABLES',
+        'ONLY_FULL_GROUP_BY',
+        'NO_ENGINE_SUBSTITUTION',
+    ];
 
-    protected $transactionStartedInfo = null;
+    protected static array $defaultSqlModes = self::SQL_MODES_57;
 
-    protected $activeTransactions = 0;
+    protected ?array $transactionStartedInfo = null;
 
-    protected $warnTransactionDepth = 3;
+    protected ?string $lastQueryStatement = null;
 
-    protected $maxTransactionDepth = 7;
-
-    protected static $emulateNestedTransactions = false;
-
-    protected $lastQueryStatement = null;
-
-    protected $lastQueryBindValues = null;
+    protected ?array $lastQueryBindValues = null;
 
 
     public function __construct(
@@ -52,12 +48,12 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
         $username = null,
         $password = null,
         array $options = [],
-        array $attributes = []
-    )
-    {
+        array $queries = [],
+        ProfilerInterface $profiler = null
+    ) {
         if (stripos($dsn, 'mysql:') === 0) {
             $setSqlMode = "SET sql_mode = '" . implode(',', static::$defaultSqlModes) . "'";
-            if (static::$setTimeZoneUTC) {
+            if (static::$setTimeZoneIsUTC) {
                 $setSqlMode .= ", time_zone ='+00:00'";
             }
             $options[\PDO::MYSQL_ATTR_INIT_COMMAND] = $setSqlMode;
@@ -66,88 +62,57 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
                 $dsn .= ';charset=utf8mb4';
             }
         }
-        $attributes[\PDO::ATTR_DEFAULT_FETCH_MODE] = \PDO::FETCH_OBJ;
-        $attributes[\PDO::ATTR_EMULATE_PREPARES] = false;
-        $attributes[\PDO::ATTR_STRINGIFY_FETCHES] = false;
-        $attributes[\PDO::MYSQL_ATTR_DIRECT_QUERY] = false;
+        $options[\PDO::ATTR_DEFAULT_FETCH_MODE] = \PDO::FETCH_OBJ;
+        $options[\PDO::ATTR_EMULATE_PREPARES] = false;
+        $options[\PDO::ATTR_STRINGIFY_FETCHES] = false;
+        $options[\PDO::MYSQL_ATTR_DIRECT_QUERY] = false;
 
-        parent::__construct($dsn, $username, $password, $options, $attributes);
-
-        $this->setProfiler(new Profiler());
-        $this->getProfiler()->setActive(false);
-        if (stripos($dsn, 'mysql:') === 0) {
-            $columnFactory = new ColumnFactory();
-            $schema = new MysqlSchema($this, $columnFactory);
-            static::setSchema($schema);
-        }
+        parent::__construct($dsn, $username, $password, $options, $queries, $profiler);
     }
 
 
     /**
      * @return null|ExtendedPdo
      */
-    public static function getInstance() : ?ExtendedPdo
+    public static function getInstance(): ?ExtendedPdo
     {
         return static::$instance;
     }
 
 
-    public static function setInstance(ExtendedPdo $instance)
+    public static function setInstance(ExtendedPdo $instance): void
     {
         static::$instance = $instance;
     }
 
 
-    public static function setDefaultSqlModes(array $modes) : void
+    public static function setDefaultSqlModes(array $modes): void
     {
         static::$defaultSqlModes = $modes;
     }
 
 
-    public static function getDefaultSqlModes() : array
+    public static function getDefaultSqlModes(): array
     {
         return static::$defaultSqlModes;
     }
 
 
-    public static function setTimeZoneUTC(bool $enabled) : void
+    public static function setTimeZoneIsUTC(bool $enabled): void
     {
-        static::$setTimeZoneUTC = $enabled;
+        static::$setTimeZoneIsUTC = $enabled;
     }
 
 
-    public static function getSetTimeZoneUTC() : bool
+    public static function getSetTimeZoneIsUTC(): bool
     {
-        return static::$setTimeZoneUTC;
-    }
-
-
-    public function setEmulateNestedTransactions(bool $enabled) : void
-    {
-        static::$emulateNestedTransactions = $enabled;
-    }
-
-
-    public function setTransactionDepthWarningLevel(int $maxTransactionDepth) : void
-    {
-        $this->warnTransactionDepth = $maxTransactionDepth;
-    }
-
-
-    public static function getSchema() : ?MysqlSchema
-    {
-        return static::$schema;
-    }
-
-
-    public static function setSchema(MysqlSchema $schema) : void
-    {
-        static::$schema = $schema;
+        return static::$setTimeZoneIsUTC;
     }
 
 
     public function perform($statement, array $values = [])
     {
+        $this->recordQuery($statement, $values);
         try {
             $retVal = parent::perform($statement, $values);
         } catch (\PDOException $e) {
@@ -173,25 +138,22 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
         if (! preg_match('/^[1-9][0-9]*$/', $retVal ?? '')) {
             throw new \UnexpectedValueException("Last insert id is not a number: " . $retVal);
         }
-        return (int) $retVal;
+        return (int)$retVal;
     }
 
 
     public function beginTransaction()
     {
-        if (static::$emulateNestedTransactions) {
-            if ($this->activeTransactions > 0) {
-                return $this->emulateNestedTransactionStart();
-            }
-        }
-
         try {
             $retVal = parent::beginTransaction();
             $this->transactionStartedInfo = debug_backtrace();
-            $this->activeTransactions++;
         } catch (\PDOException $e) {
             if (stripos($e->getMessage(), 'already an active transaction') !== false) {
-                $newException = new TransactionAlreadyStartedException("A transaction has already been started", $e->getCode(), $e);
+                $newException = new TransactionAlreadyStartedException(
+                    "A transaction has already been started",
+                    $e->getCode(),
+                    $e
+                );
                 $newException->setPreviousTransactionTrace($this->transactionStartedInfo);
                 throw $newException;
             }
@@ -202,113 +164,41 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
-    protected function emulateNestedTransactionStart() : bool
-    {
-        $this->exec(sprintf("SAVEPOINT T%d", $this->activeTransactions));
-        $this->activeTransactions++;
-
-        if ($this->activeTransactions >= $this->warnTransactionDepth) {
-            trigger_error("Nested transactions at depth {$this->activeTransactions}", E_USER_WARNING);
-        }
-        if ($this->activeTransactions >= $this->maxTransactionDepth) {
-            throw new DatabaseQueryException("Reached max nested transaction depth ({$this->activeTransactions})");
-        }
-
-        return true;
-    }
-
-
     public function rollBack()
     {
-        if ($this->activeTransactions < 1) {
-            throw new \UnexpectedValueException("No active transactions");
-        }
-
-        if (static::$emulateNestedTransactions) {
-
-            if ($this->activeTransactions > 1) {
-                $this->activeTransactions--;
-                $this->exec(sprintf("ROLLBACK TO SAVEPOINT T%d", $this->activeTransactions));
-                return true;
-            }
-        }
-
         $this->transactionStartedInfo = null;
-        $this->activeTransactions--;
         return parent::rollBack();
     }
 
 
     public function commit()
     {
-        if ($this->activeTransactions < 1) {
-            throw new \UnexpectedValueException("No active transactions");
-        }
-
-        if (static::$emulateNestedTransactions) {
-            if ($this->activeTransactions > 1) {
-                $this->activeTransactions--;
-                $this->exec(sprintf("RELEASE SAVEPOINT T%d", $this->activeTransactions));
-                return true;
-            }
-        }
-
         $this->transactionStartedInfo = null;
-        $this->activeTransactions--;
         return parent::commit();
     }
 
 
-    /**
-     * Returns the number of active transactions.
-     *
-     * Transactions wrapper that provides emulated nested transaction support via InnoDB savepoints
-     *
-     * @return int
-     */
-    public function activeTransactions() : int
-    {
-        return $this->activeTransactions;
-    }
-
-
-    public function close() : void
+    public function close(): void
     {
         $this->disconnect();
     }
 
 
-    protected function endProfile($statement = null, array $values = [])
+    protected function recordQuery($statement = null, array $values = []): void
     {
         $this->lastQueryStatement = $statement;
         $this->lastQueryBindValues = $values;
-        return parent::endProfile($statement, $values);
-    }
-
-
-    /**
-     * Return the last SQL query that was executed
-     *
-     * @return string Last query SQL
-     */
-    protected function lastProfile() : ?string
-    {
-        $profiler = $this->getProfiler();
-        if ($profiler === null) {
-            return null;
-        }
-        $profiles = $profiler->getProfiles();
-        return end($profiles);
     }
 
 
     /**
      * Return the last SQL query that was executed.
-     * Note that this version of the query will not be properly escaped, but can be useful enough for debugging
+     * Note that this version of the query will not be properly escaped, but can be useful enough for debugging.
+     * ->quote() cannot be used here because the DB connection may no longer exist / be valid
      *
-     * @return string Last query SQL
+     * @return string|null Last query SQL
      */
-    public function lastQuery() : ?string
+    public function lastQuery(): ?string
     {
         $query = $this->lastQueryStatement;
         if (is_array($this->lastQueryBindValues)) {
@@ -317,7 +207,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
                     $v = implode(', ', $v);
                 }
 
-                $query = str_replace(":{$k}", $v, $query);
+                $query = str_replace(":{$k}", "'" . $v . "'", $query);
             }
         }
         return $query;
