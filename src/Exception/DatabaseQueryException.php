@@ -3,9 +3,7 @@ declare(strict_types=1);
 
 namespace AllenJB\Sql\Exception;
 
-/**
- * @phpstan-consistent-constructor
- */
+/** @phpstan-consistent-constructor */
 class DatabaseQueryException extends \PDOException
 {
 
@@ -17,6 +15,16 @@ class DatabaseQueryException extends \PDOException
     protected ?array $values = null;
 
     protected ?string $sqlErrorCode = null;
+
+
+    /**
+     * @param string $message
+     * @param int $code
+     */
+    public function __construct($message = "", $code = 0, \Throwable $previous = null)
+    {
+        parent::__construct($message, $code, $previous);
+    }
 
 
     public function setStatement(?string $statement): void
@@ -31,12 +39,18 @@ class DatabaseQueryException extends \PDOException
     }
 
 
-    public function setValues(array $values): void
+    /**
+     * @param array<string, mixed>|null $values
+     */
+    public function setValues(?array $values): void
     {
         $this->values = $values;
     }
 
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getValues(): ?array
     {
         return $this->values;

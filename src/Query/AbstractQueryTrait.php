@@ -9,11 +9,9 @@ trait AbstractQueryTrait
 {
 
     /**
-     *
      * Gets the values to bind to placeholders.
      *
-     * @return array
-     *
+     * @return array<string, mixed>
      */
     public function getBindValues()
     {
@@ -32,6 +30,10 @@ trait AbstractQueryTrait
     }
 
 
+    /**
+     * @param mixed $value
+     * @return int|mixed|string
+     */
     protected function convertBindValue($value)
     {
         if (($value instanceof \DateTimeImmutable) || ($value instanceof \DateTime)) {

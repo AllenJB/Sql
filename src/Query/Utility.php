@@ -14,6 +14,7 @@ class Utility
      * - Parameters never appear directly next to each other (no other characters between them)
      *
      * Returns an associative array containing keys "sql" (converted SQL string) and "params" (converted params array)
+     * @param array<string, mixed> $params
      */
     public static function parametersToPositional(string $sql, array $params): array
     {

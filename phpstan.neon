@@ -1,6 +1,8 @@
 # roave/no-floaters is disabled by default because it catches too many things at the moment
 # We may want to look at narrowing the scope of the no-floaters rules to (exclude) specific classes
-#includes:
+includes:
+    - phpstan-baseline.neon
+    - phar://phpstan.phar/conf/bleedingEdge.neon
 #    - vendor/roave/no-floaters/rules.neon
 parameters:
     # From 0-8 (or "max". 0 is loosest). See the files in conf/ in the repo for what's at each level
@@ -20,7 +22,7 @@ parameters:
     reportStaticMethodSignatures: true
 
     ignoreErrors:
-        - '#^Call to an undefined method React\\Promise\\PromiseInterface::done\(\)#'
+#        - '#^Return type mixed of method AllenJB\\Sql\\ExtendedPdo::(exec|query|lastInsertId)\(\) is not covariant with return type [^\s]+ of method Aura\\Sql\\PdoInterface#'
 
 services:
     -
@@ -37,13 +39,5 @@ services:
             - phpstan.rules.rule
     -
         class: PHPStan\Rules\StrictCalls\DynamicCallOnStaticMethodsRule
-        tags:
-            - phpstan.rules.rule
-    -
-        class: SlamPhpStan\UnusedVariableRule
-        tags:
-            - phpstan.rules.rule
-    -
-        class: SlamPhpStan\StringToClassRule
         tags:
             - phpstan.rules.rule

@@ -35,15 +35,31 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
         'NO_ENGINE_SUBSTITUTION',
     ];
 
+    /**
+     * @var array<string>
+     */
     protected static array $defaultSqlModes = self::SQL_MODES_57;
 
+    /**
+     * @var array<int, array{function: string, line?: int, file?: string, class?: class-string, type?: '->'|'::', args?: array, object?: object}>|null
+     */
     protected ?array $transactionStartedInfo = null;
 
     protected ?string $lastQueryStatement = null;
 
+    /**
+     * @var array<string, mixed>|null
+     */
     protected ?array $lastQueryBindValues = null;
 
 
+    /**
+     * @param string $dsn
+     * @param ?string $username
+     * @param ?string $password
+     * @param array<string, mixed> $options
+     * @param array<string> $queries
+     */
     public function __construct(
         $dsn,
         $username = null,
@@ -87,12 +103,18 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
+    /**
+     * @param array<string> $modes
+     */
     public static function setDefaultSqlModes(array $modes): void
     {
         static::$defaultSqlModes = $modes;
     }
 
 
+    /**
+     * @return array<string>
+     */
     public static function getDefaultSqlModes(): array
     {
         return static::$defaultSqlModes;
@@ -111,6 +133,10 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
+    /**
+     * @param string $statement
+     * @param array<string, mixed> $values
+     */
     public function perform($statement, array $values = []): \PDOStatement
     {
         $this->recordQuery($statement, $values);
@@ -122,6 +148,9 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
+    /**
+     * @param array<string, mixed>|null $values
+     */
     protected function handleException(\PDOException $e, ?string $statement, ?array $values): \Exception
     {
         $regexIllegalMixMsg = '/1267 Illegal mix of collations/';
@@ -140,11 +169,14 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
+    /**
+     * @param array<string, mixed> $values
+     */
     public function performWithDeadlockRetry(
-        $statement,
+        string $statement,
         array $values = [],
-        $maxTries = 3,
-        $uSleep = 250
+        int $maxTries = 3,
+        int $uSleep = 250
     ): \PDOStatement {
         $tries = 0;
         retryPerformWithDeadlock:
@@ -179,7 +211,10 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
-    public function query(string $query, ...$fetch): \PDOStatement
+    /**
+     * @return false|\PDOStatement
+     */
+    public function query(string $query, ...$fetch)
     {
         try {
             $result = parent::query($query, ...$fetch);
@@ -192,27 +227,28 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
 
 
     /**
+     * @param ?string $name
      * @return string|false
      */
     #[\ReturnTypeWillChange]
     public function lastInsertId($name = null)
     {
         $retVal = parent::lastInsertId($name);
-        if (("" . ($retVal ?? "")) === "") {
+        if (("" . $retVal) === "") {
             throw new \UnexpectedValueException("No last insert id available");
         }
         return $retVal;
     }
 
 
-    public function lastInsertIdAsInt($name = null): ?int
+    public function lastInsertIdAsInt(?string $name = null): ?int
     {
         $insertId = $this->lastInsertId($name);
         if ($insertId === false) {
             return null;
         }
-        if (! preg_match('/^[1-9][0-9]*$/', $retVal ?? '')) {
-            throw new \UnexpectedValueException("Last insert id is not a number: " . $retVal);
+        if (! preg_match('/^[1-9][0-9]*$/', $insertId)) {
+            throw new \UnexpectedValueException("Last insert id is not a number: " . $insertId);
         }
         return (int)$insertId;
     }
@@ -230,7 +266,9 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
                     $e->getCode(),
                     $e
                 );
-                $newException->setPreviousTransactionTrace($this->transactionStartedInfo);
+                if ($this->transactionStartedInfo !== null) {
+                    $newException->setPreviousTransactionTrace($this->transactionStartedInfo);
+                }
                 throw $newException;
             }
             throw $e;
@@ -260,7 +298,10 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
-    protected function recordQuery($statement = null, array $values = []): void
+    /**
+     * @param array<string, mixed>|null $values
+     */
+    protected function recordQuery(?string $statement = null, ?array $values = []): void
     {
         $this->lastQueryStatement = $statement;
         $this->lastQueryBindValues = $values;
@@ -276,14 +317,19 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
      */
     public function lastQuery(): ?string
     {
-        $query = $this->lastQueryStatement;
+        $query = ($this->lastQueryStatement ?? '');
         if (is_array($this->lastQueryBindValues)) {
             foreach ($this->lastQueryBindValues as $k => $v) {
                 if (is_array($v)) {
                     $v = implode(', ', $v);
                 }
 
-                $query = str_replace(":{$k}", "'" . $v . "'", $query);
+                if ($v === null) {
+                    $v = 'null';
+                } else {
+                    $v = "'" . $v . "'";
+                }
+                $query = str_replace(":{$k}", $v, $query);
             }
         }
         return $query;

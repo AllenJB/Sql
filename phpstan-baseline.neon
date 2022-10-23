@@ -1,0 +1,51 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Method AllenJB\\\\Sql\\\\Exception\\\\TransactionAlreadyStartedException\\:\\:getPreviousTransactionTrace\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Exception/TransactionAlreadyStartedException.php
+
+		-
+			message: "#^Method AllenJB\\\\Sql\\\\Exception\\\\TransactionAlreadyStartedException\\:\\:setPreviousTransactionTrace\\(\\) has parameter \\$stackTrace with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Exception/TransactionAlreadyStartedException.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$stackTrace with type array\\<int, array\\<string, array\\|int\\|object\\|string\\>\\>\\|null is not subtype of native type array\\.$#"
+			count: 1
+			path: src/Exception/TransactionAlreadyStartedException.php
+
+		-
+			message: "#^Property AllenJB\\\\Sql\\\\Exception\\\\TransactionAlreadyStartedException\\:\\:\\$previousTransactionTrace type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Exception/TransactionAlreadyStartedException.php
+
+		-
+			message: "#^Dead catch \\- AllenJB\\\\Sql\\\\Exception\\\\DatabaseDeadlockException is never thrown in the try block\\.$#"
+			count: 1
+			path: src/ExtendedPdo.php
+
+		-
+			message: "#^Dead catch \\- PDOException is never thrown in the try block\\.$#"
+			count: 1
+			path: src/ExtendedPdo.php
+
+		-
+			message: "#^Property AllenJB\\\\Sql\\\\ExtendedPdo\\:\\:\\$transactionStartedInfo type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/ExtendedPdo.php
+
+		-
+			message: "#^Property Aura\\\\SqlQuery\\\\Common\\\\Insert\\:\\:\\$bind_values_bulk \\(array\\) in isset\\(\\) is not nullable\\.$#"
+			count: 1
+			path: src/Query/Mysql/Insert.php
+
+		-
+			message: "#^Method AllenJB\\\\SqlQuery\\\\QueryFactory\\:\\:newInstance\\(\\) should return Aura\\\\SqlQuery\\\\AbstractQuery but returns object\\.$#"
+			count: 1
+			path: src/Query/QueryFactory.php
+
+		-
+			message: "#^Method AllenJB\\\\SqlQuery\\\\Utility\\:\\:parametersToPositional\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Query/Utility.php
