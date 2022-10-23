@@ -1,19 +1,25 @@
 <?php
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace AllenJB\Sql\Exception;
 
+/**
+ * @phpstan-consistent-constructor
+ */
 class DatabaseQueryException extends \PDOException
 {
 
     protected ?string $statement = null;
 
+    /**
+     * @var array<string, mixed>
+     */
     protected ?array $values = null;
 
     protected ?string $sqlErrorCode = null;
 
 
-    public function setStatement(?string $statement)
+    public function setStatement(?string $statement): void
     {
         $this->statement = $statement;
     }
@@ -25,7 +31,7 @@ class DatabaseQueryException extends \PDOException
     }
 
 
-    public function setValues(array $values)
+    public function setValues(array $values): void
     {
         $this->values = $values;
     }
@@ -43,11 +49,11 @@ class DatabaseQueryException extends \PDOException
     }
 
 
-    public static function fromPDOException(\PDOException $e) : DatabaseQueryException
+    public static function fromPDOException(\PDOException $e): DatabaseQueryException
     {
         $obj = new static($e->getMessage(), 0, $e);
         $obj->errorInfo = $e->errorInfo;
-        if (isset($e->errorInfo[0]) && (!empty($e->errorInfo[0]))) {
+        if (isset($e->errorInfo[0]) && (! empty($e->errorInfo[0]))) {
             $obj->sqlErrorCode = $e->errorInfo[0];
         }
         return $obj;
