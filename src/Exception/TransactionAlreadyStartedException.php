@@ -6,7 +6,7 @@ namespace AllenJB\Sql\Exception;
 class TransactionAlreadyStartedException extends \PDOException
 {
 
-    protected $previousTransactionTrace = null;
+    protected ?array $previousTransactionTrace = null;
 
 
     public function setPreviousTransactionTrace(array $stackTrace) : void

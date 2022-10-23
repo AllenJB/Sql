@@ -6,20 +6,20 @@ namespace AllenJB\Sql\Exception;
 class DatabaseQueryException extends \PDOException
 {
 
-    protected $statement = null;
+    protected ?string $statement = null;
 
-    protected $values = null;
+    protected ?array $values = null;
 
-    protected $sqlErrorCode = null;
+    protected ?string $sqlErrorCode = null;
 
 
-    public function setStatement($statement)
+    public function setStatement(?string $statement)
     {
         $this->statement = $statement;
     }
 
 
-    public function getStatement()
+    public function getStatement(): ?string
     {
         return $this->statement;
     }
@@ -31,13 +31,13 @@ class DatabaseQueryException extends \PDOException
     }
 
 
-    public function getValues()
+    public function getValues(): ?array
     {
         return $this->values;
     }
 
 
-    public function getSqlErrorCode()
+    public function getSqlErrorCode(): ?string
     {
         return $this->sqlErrorCode;
     }
