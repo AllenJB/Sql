@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace AllenJB\Sql;
 
+use AllenJB\Sql\Exception\CollationException;
 use AllenJB\Sql\Exception\DatabaseDeadlockException;
 use AllenJB\Sql\Exception\DatabaseQueryException;
 use AllenJB\Sql\Exception\TransactionAlreadyStartedException;
@@ -110,43 +111,118 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
-    public function perform($statement, array $values = [])
+    public function perform($statement, array $values = []): \PDOStatement
     {
         $this->recordQuery($statement, $values);
         try {
-            $retVal = parent::perform($statement, $values);
+            return parent::perform($statement, $values);
         } catch (\PDOException $e) {
-            if (stripos($e->getMessage(), 'Deadlock found') !== false) {
-                $ex = DatabaseDeadlockException::fromPDOException($e);
-            } else {
-                $ex = DatabaseQueryException::fromPDOException($e);
-            }
-            $ex->setStatement($statement);
-            $ex->setValues($values);
-            throw $ex;
+            throw $this->handleException($e, $statement, $values);
         }
+    }
+
+
+    protected function handleException(\PDOException $e, ?string $statement, ?array $values): \Exception
+    {
+        $regexIllegalMixMsg = '/1267 Illegal mix of collations/';
+        if (stripos($e->getMessage(), 'Deadlock found') !== false) {
+            $ex = DatabaseDeadlockException::fromPDOException($e);
+        } elseif (stripos($e->getMessage(), '1366 Incorrect string value: \'\xF0') !== false) {
+            $ex = CollationException::fromPDOException($e);
+        } elseif (preg_match($regexIllegalMixMsg, $e->getMessage())) {
+            $ex = CollationException::fromPDOException($e);
+        } else {
+            $ex = DatabaseQueryException::fromPDOException($e);
+        }
+        $ex->setStatement($statement);
+        $ex->setValues($values);
+        return $ex;
+    }
+
+
+    public function performWithDeadlockRetry(
+        $statement,
+        array $values = [],
+        $maxTries = 3,
+        $uSleep = 250
+    ): \PDOStatement {
+        $tries = 0;
+        retryPerformWithDeadlock:
+        try {
+            $retVal = $this->perform($statement, $values);
+        } catch (DatabaseDeadlockException $e) {
+            $tries++;
+            if ($tries < $maxTries) {
+                usleep($uSleep);
+                goto retryPerformWithDeadlock;
+            }
+            throw $e;
+        }
+
         return $retVal;
     }
 
 
+    /**
+     * @return int
+     */
+    #[\ReturnTypeWillChange]
+    public function exec($statement)
+    {
+        try {
+            $rs = parent::exec($statement);
+        } catch (\PDOException $e) {
+            throw $this->handleException($e, $statement, null);
+        }
+
+        return $rs;
+    }
+
+
+    public function query(string $query, ...$fetch): \PDOStatement
+    {
+        try {
+            $result = parent::query($query, ...$fetch);
+        } catch (\PDOException $e) {
+            throw $this->handleException($e, $query, null);
+        }
+
+        return $result;
+    }
+
+
+    /**
+     * @return string|false
+     */
+    #[\ReturnTypeWillChange]
     public function lastInsertId($name = null)
     {
         $retVal = parent::lastInsertId($name);
         if (("" . ($retVal ?? "")) === "") {
             throw new \UnexpectedValueException("No last insert id available");
         }
-        if (! preg_match('/^[1-9][0-9]*$/', $retVal ?? '')) {
-            throw new \UnexpectedValueException("Last insert id is not a number: " . $retVal);
-        }
-        return (int)$retVal;
+        return $retVal;
     }
 
 
-    public function beginTransaction()
+    public function lastInsertIdAsInt($name = null): ?int
+    {
+        $insertId = $this->lastInsertId($name);
+        if ($insertId === false) {
+            return null;
+        }
+        if (! preg_match('/^[1-9][0-9]*$/', $retVal ?? '')) {
+            throw new \UnexpectedValueException("Last insert id is not a number: " . $retVal);
+        }
+        return (int)$insertId;
+    }
+
+
+    public function beginTransaction(): bool
     {
         try {
             $retVal = parent::beginTransaction();
-            $this->transactionStartedInfo = debug_backtrace();
+            $this->transactionStartedInfo = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
         } catch (\PDOException $e) {
             if (stripos($e->getMessage(), 'already an active transaction') !== false) {
                 $newException = new TransactionAlreadyStartedException(
@@ -164,14 +240,14 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
-    public function rollBack()
+    public function rollBack(): bool
     {
         $this->transactionStartedInfo = null;
         return parent::rollBack();
     }
 
 
-    public function commit()
+    public function commit(): bool
     {
         $this->transactionStartedInfo = null;
         return parent::commit();
