@@ -211,10 +211,7 @@ class ExtendedPdo extends \Aura\Sql\ExtendedPdo
     }
 
 
-    /**
-     * @return false|\PDOStatement
-     */
-    public function query(string $query, ...$fetch)
+    public function query(string $query, ...$fetch): \PDOStatement
     {
         try {
             $result = parent::query($query, ...$fetch);
