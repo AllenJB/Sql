@@ -19,8 +19,7 @@
         "php": "^7.4|^8.0|^8.1",
         "ext-pdo": "*",
         "aura/sql": "^4.0",
-        "aura/sqlquery": "^2.7",
-        "aura/sqlschema": "^2.0"
+        "aura/sqlquery": "^2.7"
     },
     "autoload": {
         "psr-4": {
